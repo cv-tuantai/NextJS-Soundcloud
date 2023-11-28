@@ -1,65 +1,95 @@
 "use client";
+import { useWavesurfer } from "@/utils/customHook";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import WaveSurfer from "wavesurfer.js";
-
-const useWavesurfer = (containerRef: any, options: any) => {
-  const [wavesurfer, setWavesurfer] = useState<any>(null);
-
-  // Initialize wavesurfer when the container mounts
-  // or any of the props change
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const ws = WaveSurfer.create({
-      ...options,
-      container: containerRef.current,
-    });
-
-    setWavesurfer(ws);
-
-    return () => {
-      ws.destroy();
-    };
-  }, [options, containerRef]);
-
-  return wavesurfer;
-};
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { WaveSurferOptions } from "wavesurfer.js";
 
 const WaveTrack = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const findName = searchParams.get("audio");
 
-  const optionMemo = useMemo(() => {
+  const optionMemo = useMemo((): Omit<WaveSurferOptions, "container"> => {
+    // Create a canvas gradient
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+
+    // Define the waveform gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
+    gradient.addColorStop(0, "#656666"); // Top color
+    gradient.addColorStop((canvas.height * 0.7) / canvas.height, "#656666"); // Top color
+    gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, "#ffffff"); // White line
+    gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, "#ffffff"); // White line
+    gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, "#B1B1B1"); // Bottom color
+    gradient.addColorStop(1, "#B1B1B1"); // Bottom color
+
+    // Define the progress gradient
+    const progressGradient = ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      canvas.height * 1.35,
+    );
+    progressGradient.addColorStop(0, "#EE772F"); // Top color
+    progressGradient.addColorStop(
+      (canvas.height * 0.7) / canvas.height,
+      "#EB4926",
+    ); // Top color
+    progressGradient.addColorStop(
+      (canvas.height * 0.7 + 1) / canvas.height,
+      "#ffffff",
+    ); // White line
+    progressGradient.addColorStop(
+      (canvas.height * 0.7 + 2) / canvas.height,
+      "#ffffff",
+    ); // White line
+    progressGradient.addColorStop(
+      (canvas.height * 0.7 + 3) / canvas.height,
+      "#F6B094",
+    ); // Bottom color
+    progressGradient.addColorStop(1, "#F6B094"); // Bottom color
+
     return {
-      waveColor: "rgb(200, 0, 200)",
-      progressColor: "rgb(100, 0, 100)",
       url: `/api?audio=${findName}`,
+      barWidth: 2,
+      waveColor: gradient,
+      progressColor: progressGradient,
     };
   }, []);
 
-  // const option = {
-  //   waveColor: "rgb(200, 0, 200)",
-  //   progressColor: "rgb(100, 0, 100)",
-  //   url: `/api?audio=${findName}`,
-  // };
   const wavesurfer = useWavesurfer(containerRef, optionMemo);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  // useEffect(() => {
-  //   const ws = WaveSurfer.create({
-  //     container: containerRef.current!,
-  //     waveColor: "rgb(200, 0, 200)",
-  //     progressColor: "rgb(100, 0, 100)",
-  //     url: `/api?audio=${findName}`,
-  //   });
+  useEffect(() => {
+    if (!wavesurfer) return;
 
-  //   return () => {
-  //     ws.destroy();
-  //   };
-  // }, []);
+    setIsPlaying(false);
 
-  return <div ref={containerRef}>WaveTrack</div>;
+    const subscriptions = [
+      wavesurfer.on("play", () => setIsPlaying(true)),
+      wavesurfer.on("pause", () => setIsPlaying(false)),
+    ];
+
+    return () => {
+      subscriptions.forEach((unsub) => unsub());
+    };
+  }, [wavesurfer]);
+
+  // On play button click
+  const onPlayClick = useCallback(() => {
+    if (wavesurfer) {
+      wavesurfer.isPlaying() ? wavesurfer.pause() : wavesurfer.play();
+    }
+  }, [wavesurfer]);
+
+  return (
+    <div>
+      <div ref={containerRef}>WaveTrack</div>
+      <button onClick={() => onPlayClick()}>
+        {isPlaying ? "Pause" : "Play"}
+      </button>
+    </div>
+  );
 };
 
 export default WaveTrack;
