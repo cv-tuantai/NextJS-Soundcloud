@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WaveSurferOptions } from "wavesurfer.js";
 import "./wave.scss";
+import { Pause, PlayArrow } from "@mui/icons-material";
+import { Tooltip } from "@mui/material";
 
 const WaveTrack = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +69,8 @@ const WaveTrack = () => {
 
     return {
       url: `/api?audio=${findName}`,
-      barWidth: 2,
+      barWidth: 3,
+      height: 100,
       waveColor: gradient,
       progressColor: progressGradient,
     };
@@ -96,6 +99,9 @@ const WaveTrack = () => {
       wavesurfer.on("timeupdate", (currentTime) =>
         setTime(formatTime(currentTime)),
       ),
+      wavesurfer.on("interaction", () => {
+        wavesurfer.play();
+      }),
     ];
 
     return () => {
@@ -117,16 +123,161 @@ const WaveTrack = () => {
     return `${minutes}:${paddedSeconds}`;
   };
 
+  const arrComments = [
+    {
+      id: 1,
+      avatar: "http://localhost:8000/images/chill1.png",
+      moment: 10,
+      user: "username 1",
+      content: "just a comment1",
+    },
+    {
+      id: 2,
+      avatar: "http://localhost:8000/images/chill1.png",
+      moment: 30,
+      user: "username 2",
+      content: "just a comment3",
+    },
+    {
+      id: 3,
+      avatar: "http://localhost:8000/images/chill1.png",
+      moment: 50,
+      user: "username 3",
+      content: "just a comment3",
+    },
+  ];
+
+  const calLeft = (moment: number) => {
+    const duration = 199;
+    const percent = (moment / duration) * 100;
+    return `${percent}%`;
+  };
+
   return (
     <div style={{ marginTop: "50px" }}>
-      <div ref={containerRef} className="waveFormContainer">
-        <div className="time">{time}</div>
-        <div className="duration">{duration}</div>
-        <div className="hoverWave" ref={hoverRef}></div>
+      <div
+        style={{
+          display: "flex",
+          padding: 20,
+          gap: 15,
+          height: 400,
+          background:
+            "linear-gradient(135deg, rgb(106, 112, 67) 0%, rgb(11, 15, 20) 100%)",
+        }}
+      >
+        <div
+          className="left"
+          style={{
+            width: "75%",
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex" }}>
+            <div
+              onClick={() => onPlayClick()}
+              style={{
+                height: 50,
+                width: 50,
+                background: "#f50",
+                borderRadius: "50%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+            >
+              {isPlaying ? <Pause /> : <PlayArrow />}
+            </div>
+            <div style={{ marginLeft: 20 }}>
+              <div
+                style={{
+                  padding: "0 5px",
+                  background: "#333",
+                  fontSize: 30,
+                  width: "fit-content",
+                  color: "white",
+                }}
+              >
+                IT Song
+              </div>
+              <div
+                style={{
+                  padding: "0 5px",
+                  marginTop: 10,
+                  background: "#333",
+                  fontSize: 20,
+                  width: "fit-content",
+                  color: "white",
+                }}
+              >
+                Eric
+              </div>
+            </div>
+          </div>
+          <div ref={containerRef} className="waveFormContainer">
+            <div className="time">{time}</div>
+            <div className="duration">{duration}</div>
+            <div className="hoverWave" ref={hoverRef}></div>
+            {/* <div
+              className="overlay"
+              style={{
+                position: "absolute",
+                height: "30px",
+                width: "100%",
+                bottom: "0",
+                // background: "#ccc"
+                backdropFilter: "brightness(0.5)",
+              }}
+            ></div> */}
+            <div className="comment" style={{ position: "relative" }}>
+              {arrComments.map((item) => {
+                return (
+                  <Tooltip title={item.content} arrow>
+                    <img
+                      onPointerMove={() => {
+                        const hover = hoverRef.current!;
+                        hover.style.width = calLeft(item.moment);
+                      }}
+                      key={item.id}
+                      src="http://localhost:8000/images/chill1.png"
+                      alt="123"
+                      style={{
+                        height: 20,
+                        width: 20,
+                        position: "absolute",
+                        top: 71,
+                        zIndex: 20,
+                        left: calLeft(item.moment),
+                      }}
+                    />
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="right"
+          style={{
+            width: "25%",
+            padding: 15,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#ccc",
+              height: 250,
+              width: 250,
+            }}
+          ></div>
+        </div>
       </div>
-      <button onClick={() => onPlayClick()}>
-        {isPlaying ? "Pause" : "Play"}
-      </button>
     </div>
   );
 };
